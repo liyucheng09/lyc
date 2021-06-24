@@ -227,10 +227,18 @@ class processor:
     @classmethod
     def get_true_length(cls, examples):
         assert cls.tokenizer is not None
-        examples['n'] = [sum(i) - 2 for i in examples['attention_mask']]
-        examples['n_real'] = [sum([0 if cls.is_wordpiece(cls.tokenizer.convert_ids_to_tokens(i))
-                            else 1 for i in line]) - 2 for line in examples['input_ids']]
+        print(f'Tokenizer_type: {cls.tokenizer.name_or_path}, should check the n_real method.')
+        examples['n'] = [sum(i) for i in examples['attention_mask']]
+        examples['n_real'] = [sum([0 if cls.tokenizer.convert_ids_to_tokens(i).startswith('##') 
+                            else 1 for i in line])  for line in examples['input_ids']]
         return examples
+
+def get_hf_ds_scripts_path(ds_name):
+    relative_path={
+        'atec':'hfds_scripts/atec_dataset.py'
+    }
+
+    return os.path.join(os.path.dirname(__file__), relative_path[ds_name])
 
 
 if __name__ == '__main__':

@@ -173,7 +173,14 @@ def save_kernel_and_bias(kernel, bias, model_path):
     print(f'Kernal and bias saved in {os.path.join(model_path, "kernel.npy")} and {os.path.join(model_path, "bias.npy")}')
 
 def vector_l2_normlize(vecs):
-    return vecs/np.sqrt((vecs**2).sum(axis=1, keepdims=True))
+    if isinstance(vecs, np.ndarray):
+        norms = np.sqrt((vecs**2).sum(axis=1, keepdims=True))
+        return vecs/np.clip(norms, 1e-8, np.inf) 
+    elif isinstance(vecs, torch.Tensor):
+        norms = torch.sqrt((vecs**2).sum(dim=1, keepdims=True))
+        return vecs/ torch.clamp(norms, 1e-8, np.inf)
+    else:
+        raise NotImplementedError()
 
 def get_pl_callbacks(args):
     """
