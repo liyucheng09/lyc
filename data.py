@@ -239,6 +239,13 @@ def get_hf_ds_scripts_path(ds_name):
 
     return os.path.join(os.path.dirname(__file__), relative_path[ds_name])
 
+def get_hf_metrics_scripts_path(metrics_name):
+    relative_path={
+        'bleu':'hfds_metrics/bleu.py'
+    }
+
+    return os.path.join(os.path.dirname(__file__), relative_path[metrics_name])
+
 
 if __name__ == '__main__':
     from utils import get_tokenizer
