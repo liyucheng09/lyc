@@ -145,7 +145,7 @@ def get_tokenized_ds(scripts, path, tokenizer, max_length=64,
 
 def get_dataloader(ds: hfds, batch_size=32, cols=['input_ids', 'attention_mask', 'token_type_ids', 'label']):
     ds.set_format(type='torch', columns=cols)
-    dl=DataLoader(ds, batch_size)
+    dl=DataLoader(ds, batch_size, shuffle=True)
     return dl
 
 class SentencePairDataset(Dataset):
@@ -201,7 +201,8 @@ class processor:
 
     block_size : int = 512
     tokenizer = None
-
+    is_wordpiece = lambda x: x.startwith('##')
+    
     @classmethod
     def lm_group_texts(cls, examples):
         """
@@ -226,9 +227,8 @@ class processor:
     @classmethod
     def get_true_length(cls, examples):
         assert cls.tokenizer is not None
-        print(f'Tokenizer_type: {cls.tokenizer.name_or_path}, should check the n_real method.')
         examples['n'] = [sum(i) - 2 for i in examples['attention_mask']]
-        examples['n_real'] = [sum([0 if cls.tokenizer.convert_ids_to_tokens(i).startswith('##') 
+        examples['n_real'] = [sum([0 if cls.is_wordpiece(cls.tokenizer.convert_ids_to_tokens(i))
                             else 1 for i in line]) - 2 for line in examples['input_ids']]
         return examples
 

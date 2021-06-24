@@ -2,7 +2,9 @@ from transformers import (BertModel,
                           BertTokenizer,
                           AutoModel,
                           AutoTokenizer,
-                          PreTrainedModel)
+                          PreTrainedModel,
+                         GPT2Tokenizer,
+                         GPT2TokenizerFast)
 from datasets import load_dataset, Dataset as hfds
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
@@ -194,3 +196,5 @@ def get_pl_callbacks(args):
         'lr_monitor': LearningRateMonitor()
     }
 
+def subtokenizer_of_gpt(tokenizer):
+    return issubclass(tokenizer.__class__, GPT2Tokenizer) or issubclass(tokenizer.__class__, GPT2TokenizerFast)
