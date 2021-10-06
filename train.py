@@ -1,6 +1,6 @@
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils import *
+from .utils import *
 from tqdm import tqdm
 import os
 from dataclasses import dataclass
