@@ -1,12 +1,42 @@
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers.trainer_callback import TrainerCallback
 from lyc.utils import vector_l2_normlize
 import numpy as np
-from sklearn.metrics import accuracy_score
 
 metrics_computing={
     'accuracy': accuracy_score,
 }
+
+def tagging_eval_for_trainer(eval_prediction):
+    """This function can be sent to huggingface.Trainer as computing_metrics funcs.
+
+    Args:
+        eval_prediction ([type]): two atrributes
+            - predictions
+            - label_ids
+    """
+
+    predictions, labels = eval_prediction
+    predictions = np.argmax(predictions, axis=-1)
+
+    # true_predictions = [
+    #     [p for (p, l) in zip(prediction, label) if l != -100]
+    #     for prediction, label in zip(predictions, labels)
+    # ]
+    # true_labels = [
+    #     [l for (p, l) in zip(prediction, label) if l != -100]
+    #     for prediction, label in zip(predictions, labels)
+    # ]
+
+    true_predictions = [ p for prediction, label in zip(predictions, labels) for (p, l) in zip(prediction, label) if l != -100]
+    true_labels = [ l for prediction, label in zip(predictions, labels) for (p, l) in zip(prediction, label) if l != -100]
+
+    return {
+        "accuracy_score": accuracy_score(true_labels, true_predictions),
+        "precision": precision_score(true_labels, true_predictions, average='micro'),
+        "recall": recall_score(true_labels, true_predictions, average='micro'),
+        "f1": f1_score(true_labels, true_predictions, average='micro'),
+    }
 
 def pred_forward(model, eval_dl):
     all_preds = []

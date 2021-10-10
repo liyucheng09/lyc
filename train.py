@@ -6,6 +6,7 @@ import os
 from dataclasses import dataclass
 import argparse
 from transformers import Trainer, TrainingArguments, HfArgumentParser
+import collections
 
 def train_step(
     model, batch, optimizer, lr_schedule=None, clip_grad=None
