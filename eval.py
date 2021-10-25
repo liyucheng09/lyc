@@ -73,6 +73,38 @@ def write_predict_to_file(pred_out, out_file='predictions.csv', label_list=None)
         print(f'Save to {out_file}.')
         return
 
+def eval_with_weights(pred_out, weights):
+    predictions = pred_out.predictions
+    labels = pred_out.label_ids
+
+    predictions = np.argmax(predictions, axis=-1)
+
+    if len(labels.shape) == 2:
+        print('&&& Assuming tagging predictions:')
+        true_predictions = [
+            [p for (p, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(predictions, labels)
+        ]
+        true_labels = [
+            [l for (p, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(predictions, labels)
+        ]
+        true_weights = [
+            [w for (w, l) in zip(weight, label) if l != -100]
+            for weight, label in zip(weights, labels)
+        ]
+        p,l,w = np.concatenate(true_predictions), np.concatenate(true_labels), np.concatenate(true_weights)
+
+    elif len(labels.shape) == 1:
+        p,l,w = predictions, labels, weights
+    
+    return {
+        "accuracy_score": accuracy_score(p, l, sample_weight=w),
+        "precision": precision_score(p, l, sample_weight=w, average='micro'),
+        "recall": recall_score(p, l, sample_weight=w, average='micro'),
+        "f1": f1_score(p, l, sample_weight=w, average='micro'),
+    }
+
 
 class Evaluator:
 
