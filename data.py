@@ -16,7 +16,10 @@ import pickle
 import pandas as pd
 
 def get_tokenized_ds(scripts, tokenizer, max_length=64,
-            slice=None, num_proc=None, shuffle=False, tokenize_func=None, cache_file_names=None, batched=True, **kwargs):
+            slice=None, num_proc=None, shuffle=False, tokenize_func=None, 
+            cache_file_names=None, batched=True, tokenize_cols=['tokens'], 
+            is_split_into_words=False, return_word_ids=None, tagging_cols={'labels':-100},
+            **kwargs):
     """
     Given huggingface dataset-loading scripts and datapath, return processed datasets.
 
@@ -24,9 +27,16 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
         scripts: .py file
         path: datapath corresponding to the scripts
         tokenizer: huggingface tokenizer object
-        ds: the name of the datasets
         slice: if given, will return a slice of the process dataset for testing usage.
-
+        num_proc:
+        shuffle
+        tokenize_func
+        cache_file_names
+        batched
+        tokenize_cols
+        is_split_into_words
+        return_word_ids
+        tagging_cols
     Returns:
         ds: python dict object, where features names are the key, values are pytorch tensor.
     """
@@ -44,7 +54,7 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
         """
         results={}
         for k,v in ds.items():
-            if k == 'label':
+            if k not in tokenize_cols:
                 results[k]=v
                 continue
             out_=tokenizer(v, max_length=max_length, padding=True, truncation=True)
@@ -57,7 +67,7 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
         """
         results={}
         for k,v in ds.items():
-            if k == 'label':
+            if k not in tokenize_cols:
                 results.update({k:v})
                 continue
             out_=tokenizer(v, max_length=max_length, padding=True, truncation=True)
@@ -68,45 +78,51 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
     def _tokenize3(ds):
         results={}
         for k,v in ds.items():
-            if k == 'label':
+            if k not in tokenize_cols:
                 results[k]=v
                 continue
-            out_=tokenizer(v, max_length=max_length, padding=True, truncation=True)
+            out_=tokenizer(v, is_split_into_words=is_split_into_words, max_length=max_length, padding='max_length', truncation=True)
             results.update(out_)
+            if return_word_ids is not None:
+                words_ids = [out_.word_ids(i) for i in range(len(out_.encodings))]
+                results['words_ids']=words_ids
         return results
-    
+
     def _tokenize4(ds):
         results={}
         for k,v in ds.items():
-            if k == 'label':
+            if k not in tokenize_cols:
                 results[k]=v
                 continue
-            out_=tokenizer(v, return_token_type_ids = False)
+            out_=tokenizer(v, is_split_into_words=is_split_into_words)
             results.update(out_)
+            if return_word_ids is not None:
+                words_ids = [out_.word_ids(i) for i in range(len(out_.encodings))]
+                results['words_ids']=words_ids
         return results
     
     def _tokenize_and_alingn_labels(ds):
         results={}
         for k,v in ds.items():
-            if 'id' in k:
+            if k not in tokenize_cols:
                 results[k]=v
                 continue
-            if 'tag' not in k:
-                out_=tokenizer(v, is_split_into_words=True)
-                results.update(out_)
+            out_=tokenizer(v, is_split_into_words=True)
+            results.update(out_)
         labels={}
-        for i, column in enumerate([k for k in ds.keys() if 'tag' in k]):
+        for i, column in enumerate(tagging_cols.keys()):
             label = ds[column]
+            fillin_value = tagging_cols[column]
             words_ids = out_.word_ids()
             previous_word_idx = None
             label_ids = []
             for word_idx in words_ids:
                 if word_idx is None:
-                    label_ids.append(-100)
+                    label_ids.append(fillin_value)
                 elif word_idx!=previous_word_idx:
                     label_ids.append(label[word_idx])
                 else:
-                    label_ids.append(-100)
+                    label_ids.append(fillin_value)
                 previous_word_idx = word_idx
             labels[column] = label_ids
         
@@ -161,6 +177,7 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
     cols_needed_removed=_get_col_names(ds.column_names)
     
     print(ds)
+    tokenize_cols = tokenize_cols or ['tokens']
     if tokenize_func is not None:
         ds = ds.map(
             tokenize_funcs[tokenize_func],
@@ -179,6 +196,11 @@ def get_dataloader(ds: hfds, batch_size=32, cols=['input_ids', 'attention_mask',
     ds.set_format(type='torch', columns=cols)
     dl=DataLoader(ds, batch_size, shuffle=True)
     return dl
+
+def wrap_sentences_to_ds(sents, tokenize_func, **kwargs):
+    encoding = tokenize_func(sents, **kwargs)
+    ds = datasets.Dataset.from_dict(encoding)
+    return ds
 
 class SentencePairDataset(Dataset):
     """
@@ -305,7 +327,8 @@ class processor:
 def get_hf_ds_scripts_path(ds_name):
     relative_path={
         'atec':'hfds_scripts/atec_dataset.py',
-        'sesame':'hfds_scripts/sesame_dataset.py'
+        'sesame':'hfds_scripts/sesame_dataset.py',
+        'vua20': 'hfds_scripts/vua20_dataset.py'
     }
 
     return os.path.join(os.path.dirname(__file__), relative_path[ds_name])

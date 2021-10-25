@@ -7,9 +7,11 @@ from dataclasses import dataclass
 import argparse
 from transformers import Trainer, TrainingArguments, HfArgumentParser
 import collections
+import numpy as np
+from datetime import datetime
 
 def train_step(
-    model, batch, optimizer, lr_schedule=None, clip_grad=None
+    model, batch, optimizer, lr_schedule=None, clip_grad=1
 ):
     """
     进行一次forward + 一次backward + optim.step.
@@ -22,14 +24,14 @@ def train_step(
         clip_grad: optional 切割梯度
     """
 
+    model.train()
+    optimizer.zero_grad()
     outputs=model(**batch)
     if isinstance(model, torch.nn.DataParallel):
         loss=outputs.loss.mean()
     else:
         loss=outputs.loss
     
-    optimizer.zero_grad()
-
     loss.backward()
 
     if clip_grad:
@@ -42,7 +44,9 @@ def train_step(
     return loss, model, optimizer, lr_schedule
 
 def train_loop(
-    epoches, dl, model, optimizer, writer=None, lr_schedule=None, eval_func=None, **eval_args
+    epoches, dl, model, optimizer, writer=None, lr_schedule=None, 
+    eval_func=None, save_epoch=None, save_prefix='', clip_grad=None, 
+    save_best=None, small_is_better=None, **eval_args
 ):
     """[summary]
 
@@ -55,17 +59,42 @@ def train_loop(
         lr_schedule ([type], optional): [description]. Defaults to None.
     """
     num_steps_per_epoches = len(dl)
-    for epoch in range(epoches):
-        for idx, batch in tqdm(dl, desc=f'Training for {epoch}th epoch: '):
-            loss, model, optimizer, lr_schedule = train_step(model, batch, optimizer, lr_schedule=lr_schedule)
+    loss = 0
+    eval_loss = 0
+    if save_best is not None:
+        best_criteria = -1000000
+    if save_epoch is not None:
+        run_sufix = datetime.now().strftime('%b%d_%H-%M-%S')
 
-            if writer is not None:
-                writer.add_scalar('loss', loss, num_steps_per_epoches*(epoch+1) + idx)
-            
-            if eval_func is not None:
-                eval_func(**eval_args)
-    return model
-            
+    for epoch in range(epoches):
+        losses = []
+        for idx, batch in enumerate(tqdm(dl, desc=f'Training {epoch}th epoch, train loss {loss:.4f}, eval loss {eval_loss:.4f}: ')):
+            loss, model, optimizer, lr_schedule = train_step(model, batch, optimizer, clip_grad=clip_grad, lr_schedule=lr_schedule)
+            losses.append(loss.item())
+        loss = np.mean(losses)
+        if writer is not None:
+            writer.add_scalar('loss', loss, epoch)
+        if eval_func is not None:
+            results = eval_func(model, writer = writer, global_step=epoch, **eval_args)
+            eval_loss = results['eval_loss']
+            if save_best is not None:
+                moving_criteria = results[save_best]
+                if small_is_better is not None:
+                    moving_criteria = - moving_criteria
+                if moving_criteria>best_criteria:
+                    best_criteria = moving_criteria
+        if save_epoch is not None and epoch % save_epoch == 0 and epoch!=0:
+            if save_best is not None:
+                if moving_criteria < best_criteria:
+                    continue
+            try:
+                os.remove(save_path)
+            except:
+                pass
+            save_path = f'checkpoints/model_{save_prefix}_{save_best}-{best_criteria:.2f}_{run_sufix}.bin' if save_best is not None else \
+                f'checkpoints/model_{save_prefix}_{run_sufix}.bin'
+            torch.save(model.state_dict(), save_path)
+    return model          
 
 class LycTrainer:
     def __init__(

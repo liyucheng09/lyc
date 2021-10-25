@@ -4,7 +4,8 @@ from transformers import (BertModel,
                           AutoTokenizer,
                           PreTrainedModel,
                          GPT2Tokenizer,
-                         GPT2TokenizerFast)
+                         GPT2TokenizerFast,
+                         AutoConfig)
 from datasets import load_dataset, Dataset as hfds
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
@@ -19,7 +20,7 @@ import pickle
 from .data import get_dataloader
 
 
-def get_model(model_class, model_name, **kwargs):
+def get_model(model_class, model_name, strict=None, **kwargs):
     """
     该方法载入模型。
 
@@ -35,7 +36,12 @@ def get_model(model_class, model_name, **kwargs):
     if model_class in WAPPERS:
         model=model_class(model_name, **kwargs)
     elif issubclass(model_class, PreTrainedModel):
-        model=model_class.from_pretrained(model_name, **kwargs)
+        if strict is not None:
+            model_config = AutoConfig.from_pretrained(model_name, **kwargs)
+            model = model_class(model_config)
+            model.load_state_dict(model_name)
+        else:
+            model=model_class.from_pretrained(model_name, **kwargs)
     else:
         raise ValueError()
 
@@ -59,9 +65,9 @@ def get_tokenizer(tokenizer_name, cache_dir=None, is_zh=None, **kwargs):
         tokenizer=AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=cache_dir, **kwargs)
     return tokenizer
 
-def get_vectors(model, tokenized_sents):
+def get_model_output(model, tokenized_sents):
     """
-    使用model.SentenceEmbeddingModel获取句向量。
+    将一个list的句子，用dataset和dataloader包装，然后直接获得输出的list。
 
     Args:
         model:
@@ -73,15 +79,14 @@ def get_vectors(model, tokenized_sents):
     """
     ds=hfds.from_dict(tokenized_sents)
     dl=get_dataloader(ds, cols=['input_ids', 'attention_mask', 'token_type_ids'])
-    a_results=[]
+    results=[]
     for batch in tqdm(dl):
         if torch.cuda.is_available():
             batch=[to_gpu(i) for i in batch]
         output = model(**batch)
-        a_embedding = output
-        a_results.append(a_embedding)
-    output=torch.cat(a_results)
-    return output
+        results.append(output)
+    return results
+
 
 def to_gpu(inputs):
     """

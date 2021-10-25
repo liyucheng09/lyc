@@ -2,13 +2,16 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from transformers.trainer_callback import TrainerCallback
 from lyc.utils import vector_l2_normlize
 import numpy as np
+import torch
 
 metrics_computing={
-    'accuracy': accuracy_score,
+    'acc': accuracy_score,
 }
 
 def tagging_eval_for_trainer(eval_prediction):
-    """This function can be sent to huggingface.Trainer as computing_metrics funcs.
+    """
+    Trainer专用compute_metrics函数
+    This function can be sent to huggingface.Trainer as computing_metrics funcs.
 
     Args:
         eval_prediction ([type]): two atrributes
@@ -38,29 +41,47 @@ def tagging_eval_for_trainer(eval_prediction):
         "f1": f1_score(true_labels, true_predictions, average='micro'),
     }
 
-def pred_forward(model, eval_dl):
-    all_preds = []
-    all_true = []
-    for batch in eval_dl:
-        label = batch.pop('labels')
-        outputs=model(**batch)
-        all_preds.extend(outputs.logits)
-        all_true.extend(label)
-    
-    return all_true, all_preds
+class Evaluator:
 
-def GeneralEval(model, eval_dl, writer, metrics, global_step):
+    preprosess_func = None
 
-    all_true, all_preds = pred_forward(model, eval_dl)
-    
-    results = {}
-    for metric in metrics:
-        results[metric] = metrics_computing[metric](all_true, all_preds)
-    
-    for k,v in results.items():
-        writer.add_scalar(k, v, global_step)
-    
-    return results
+    @classmethod
+    def pred_forward(cls, model, eval_dl):
+        model.eval()
+        all_preds = []
+        all_true = []
+        all_loss = []
+        for batch in eval_dl:
+            outputs=model(**batch)
+            all_preds.append(outputs.pred)
+            all_true.append(outputs.target)
+            all_loss.append(outputs.loss)
+        
+        all_true = torch.cat(all_true)
+        all_preds = torch.cat(all_preds)
+        all_loss = torch.stack(all_loss)
+        
+        return all_true.detach().numpy(), all_preds.detach().numpy(), all_loss.detach().numpy()
+
+    @classmethod
+    def GeneralEval(cls, model, eval_dl, writer=None, metrics=None, global_step=None):
+
+        all_true, all_preds, all_loss = cls.pred_forward(model, eval_dl)
+        
+        results = {}
+
+        if metrics is not None:
+            for metric in metrics:
+                results[metric] = metrics_computing[metric](all_true, all_preds)
+        
+            for k,v in results.items():
+                writer.add_scalar(k, v, global_step)
+        
+        mean_loss = all_loss.mean()
+        writer.add_scalar('Eval_loss', mean_loss, global_step)
+        results['eval_loss'] = mean_loss
+        
+        return results
 
 def SimCSEEvalAccComputing(preds, threshold=0.4):
     prediction=preds.prediction
