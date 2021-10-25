@@ -3,6 +3,7 @@ from transformers.trainer_callback import TrainerCallback
 from lyc.utils import vector_l2_normlize
 import numpy as np
 import torch
+import pandas as pd
 
 metrics_computing={
     'acc': accuracy_score,
@@ -40,6 +41,38 @@ def tagging_eval_for_trainer(eval_prediction):
         "recall": recall_score(true_labels, true_predictions, average='micro'),
         "f1": f1_score(true_labels, true_predictions, average='micro'),
     }
+
+def write_predict_to_file(pred_out, out_file='predictions.csv', label_list=None):
+    predictions = pred_out.predictions
+    labels = pred_out.label_ids
+
+    predictions = np.argmax(predictions, axis=-1)
+
+    if len(labels.shape) == 2:
+        print('&&& Assuming tagging predictions:')
+        true_predictions = [
+            [(label_list[p] if label_list is not None else p) for (p, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(predictions, labels)
+        ]
+        true_labels = [
+            [(label_list[l] if label_list is not None else l) for (p, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(predictions, labels)
+        ]
+        with open(out_file, 'w', encoding='utf-8') as f:
+            for p,l in zip(true_predictions, true_labels):
+                f.write('pred:\t' + '\t'.join([str(i) for i in p]) + '\n')
+                f.write('labels:\t' + '\t'.join([str(i) for i in l]) + '\n')
+                f.write('\n')
+        print(f'Save to {out_file}.')
+        return
+
+    elif len(labels.shape) == 1:
+        result = {'prediction': predictions, 'labels': labels}
+        df = pd.DataFrame(result)
+        df.to_csv(out_file, index=False)
+        print(f'Save to {out_file}.')
+        return
+
 
 class Evaluator:
 
