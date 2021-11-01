@@ -192,9 +192,9 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
     
     return ds
 
-def get_dataloader(ds: hfds, batch_size=32, cols=['input_ids', 'attention_mask', 'token_type_ids', 'label']):
+def get_dataloader(ds: hfds, batch_size=32, cols=['input_ids', 'attention_mask', 'token_type_ids', 'label'], shuffle=False, **kwargs):
     ds.set_format(type='torch', columns=cols)
-    dl=DataLoader(ds, batch_size, shuffle=True)
+    dl=DataLoader(ds, batch_size, shuffle=shuffle, **kwargs)
     return dl
 
 def wrap_sentences_to_ds(sents, tokenize_func, **kwargs):

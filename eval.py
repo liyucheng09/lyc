@@ -4,6 +4,7 @@ from lyc.utils import vector_l2_normlize
 import numpy as np
 import torch
 import pandas as pd
+from scipy.special import expit
 
 metrics_computing={
     'acc': accuracy_score,
@@ -11,9 +12,8 @@ metrics_computing={
 
 def tagging_eval_for_trainer(eval_prediction):
     """
-    Trainer专用compute_metrics函数
+    Trainer专用标注问题的通用compute_metrics函数
     This function can be sent to huggingface.Trainer as computing_metrics funcs.
-
     Args:
         eval_prediction ([type]): two atrributes
             - predictions
@@ -40,6 +40,43 @@ def tagging_eval_for_trainer(eval_prediction):
         "precision": precision_score(true_labels, true_predictions, average='micro'),
         "recall": recall_score(true_labels, true_predictions, average='micro'),
         "f1": f1_score(true_labels, true_predictions, average='micro'),
+    }
+
+def frame_finder_eval_for_trainer(eval_prediction):
+    """
+    Trainer专用标注问题的通用compute_metrics函数
+    This function can be sent to huggingface.Trainer as computing_metrics funcs.
+    Args:
+        eval_prediction ([type]): two atrributes
+            - predictions
+            - label_ids
+    """
+
+    predictions, labels = eval_prediction
+    sent_pred = predictions[:, 0]
+    sent_pred = expit(sent_pred)>0.5
+
+    predictions = np.argmax(predictions, axis=-1)
+
+    # true_predictions = [
+    #     [p for (p, l) in zip(prediction, label) if l != -100]
+    #     for prediction, label in zip(predictions, labels)
+    # ]
+    # true_labels = [
+    #     [l for (p, l) in zip(prediction, label) if l != -100]
+    #     for prediction, label in zip(predictions, labels)
+    # ]
+
+    true_predictions = [ p for prediction, label in zip(predictions, labels) for (p, l) in zip(prediction, label) if l != -100]
+    true_labels = [ l for prediction, label in zip(predictions, labels) for (p, l) in zip(prediction, label) if l != -100]
+
+    labels[labels==-100]=0
+    sent_labels = np.zeros((labels.shape[0], 797))
+    np.put_along_axis(sent_labels, labels, 1, axis=1)
+
+    return {
+        "f1": f1_score(true_labels, true_predictions, average='micro'),
+        "sent_f1": f1_score(sent_labels, sent_pred, average='micro')
     }
 
 def write_predict_to_file(pred_out, out_file='predictions.csv', label_list=None):

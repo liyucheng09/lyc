@@ -239,7 +239,7 @@ def get_base_hf_args(
 
     Args:
         output_dir (str): [description]
-        evaluation_strategy (str, optional): IntervalStrategy:['no', 'step', 'epoch]. Defaults to 'no'.
+        evaluation_strategy (str, optional): IntervalStrategy:['no', 'steps', 'epoch]. Defaults to 'no'.
         train_batch_size (int, optional): [description]. Defaults to 8.
         eval_batch_size (int, optional): [description]. Defaults to 8.
         gradient_accumulation_steps (int, optional): [description]. Defaults to 1.
