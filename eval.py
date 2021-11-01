@@ -53,8 +53,9 @@ def frame_finder_eval_for_trainer(eval_prediction):
     """
 
     predictions, labels = eval_prediction
+    labels, sent_labels = labels
     sent_pred = predictions[:, 0]
-    sent_pred = expit(sent_pred)>0.5
+    sent_pred = sent_pred>0
 
     predictions = np.argmax(predictions, axis=-1)
 
@@ -70,16 +71,9 @@ def frame_finder_eval_for_trainer(eval_prediction):
     true_predictions = [ p for prediction, label in zip(predictions, labels) for (p, l) in zip(prediction, label) if l != -100]
     true_labels = [ l for prediction, label in zip(predictions, labels) for (p, l) in zip(prediction, label) if l != -100]
 
-    labels[labels==-100]=0
-    sent_labels = np.zeros((labels.shape[0], 797))
-    np.put_along_axis(sent_labels, labels, 1, axis=1)
-    sent_labels[:, 0] = 0
-
     return {
         "f1": f1_score(true_labels, true_predictions, average='micro'),
         "sent_f1": f1_score(sent_labels, sent_pred, average='micro'),
-        "sent_p": precision_score(sent_labels, sent_pred, average='micro'),
-        "sent_r": recall_score(sent_labels, sent_pred, average='micro')
     }
 
 def write_predict_to_file(pred_out, tokens, out_file='predictions.csv', label_list=None):
