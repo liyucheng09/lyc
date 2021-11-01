@@ -18,7 +18,7 @@ import pandas as pd
 def get_tokenized_ds(scripts, tokenizer, max_length=64,
             slice=None, num_proc=None, shuffle=False, tokenize_func=None, 
             cache_file_names=None, batched=True, tokenize_cols=['tokens'], 
-            is_split_into_words=False, return_word_ids=None, tagging_cols={'labels':-100},
+            is_split_into_words=False, return_word_ids=None, tagging_cols={'labels':-100}, remove_cols=None,
             **kwargs):
     """
     Given huggingface dataset-loading scripts and datapath, return processed datasets.
@@ -174,14 +174,15 @@ def get_tokenized_ds(scripts, tokenizer, max_length=64,
 
     ds = _slice(ds, slice) if slice else ds
 
-    cols_needed_removed=_get_col_names(ds.column_names)
+    if remove_cols is not None:
+        remove_cols=_get_col_names(ds.column_names)
     
     print(ds)
     tokenize_cols = tokenize_cols or ['tokens']
     if tokenize_func is not None:
         ds = ds.map(
             tokenize_funcs[tokenize_func],
-            remove_columns=cols_needed_removed,
+            remove_columns=remove_cols,
             batched=batched,
             num_proc=num_proc,
             cache_file_names=cache_file_names

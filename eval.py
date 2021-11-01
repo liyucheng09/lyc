@@ -79,7 +79,7 @@ def frame_finder_eval_for_trainer(eval_prediction):
         "sent_f1": f1_score(sent_labels, sent_pred, average='micro')
     }
 
-def write_predict_to_file(pred_out, out_file='predictions.csv', label_list=None):
+def write_predict_to_file(pred_out, tokens, out_file='predictions.csv', label_list=None):
     predictions = pred_out.predictions
     labels = pred_out.label_ids
 
@@ -96,9 +96,9 @@ def write_predict_to_file(pred_out, out_file='predictions.csv', label_list=None)
             for prediction, label in zip(predictions, labels)
         ]
         with open(out_file, 'w', encoding='utf-8') as f:
-            for p,l in zip(true_predictions, true_labels):
-                f.write('pred:\t' + '\t'.join([str(i) for i in p]) + '\n')
-                f.write('labels:\t' + '\t'.join([str(i) for i in l]) + '\n')
+            for p,l,token in zip(true_predictions, true_labels, tokens):
+                for i,j,k in zip(p,l,token):
+                    f.write(f'{k}\t{j}\t{i}\n')
                 f.write('\n')
         print(f'Save to {out_file}.')
         return
