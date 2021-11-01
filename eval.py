@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, log_loss
 from transformers.trainer_callback import TrainerCallback
 from lyc.utils import vector_l2_normlize
 import numpy as np
@@ -73,10 +73,13 @@ def frame_finder_eval_for_trainer(eval_prediction):
     labels[labels==-100]=0
     sent_labels = np.zeros((labels.shape[0], 797))
     np.put_along_axis(sent_labels, labels, 1, axis=1)
+    sent_labels[:, 0] = 0
 
     return {
         "f1": f1_score(true_labels, true_predictions, average='micro'),
-        "sent_f1": f1_score(sent_labels, sent_pred, average='micro')
+        "sent_f1": f1_score(sent_labels, sent_pred, average='micro'),
+        "sent_p": precision_score(sent_labels, sent_pred, average='micro'),
+        "sent_r": recall_score(sent_labels, sent_pred, average='micro')
     }
 
 def write_predict_to_file(pred_out, tokens, out_file='predictions.csv', label_list=None):
