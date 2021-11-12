@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import pandas as pd
 from scipy.special import expit
+from collections.abc import Iterable
 
 metrics_computing={
     'acc': accuracy_score,
@@ -76,35 +77,94 @@ def frame_finder_eval_for_trainer(eval_prediction):
         "sent_f1": f1_score(sent_labels, sent_pred, average='micro'),
     }
 
-def write_predict_to_file(pred_out, tokens, out_file='predictions.csv', label_list=None):
+def show_error_instances_id(preds, labels, output_file, *args):
+    """直接输出错误预测样例的id，id需要和pred和label是同样的shape.
+
+    Args:
+        pred : 预测到的标签，应和label是同样的shape
+        label: label
+        output_file : 输出文件地址
+    """
+
+    columns = (preds, labels) + args
+    out_file = open(output_file, 'w', encoding='utf-8')
+    for ins in zip(*columns):
+        pred, label = ins[:2]
+
+        # if not all is 1-D array/list
+        if any([isinstance(i, Iterable) for i in ins if not isinstance(i, str)]):
+            # print('Assuming 2-D input preds and labels')
+            iterrows = [i for i in ins if isinstance(i, Iterable) and not isinstance(i, str)]
+            not_iterrows = [i for i in ins if isinstance(i, str) or not isinstance(i, Iterable)]
+            to_write = '\t'.join([str(i) for i in not_iterrows])
+            for ins2 in zip(*iterrows):
+                p,l=ins2[:2]
+                to_write_2 = '\t'.join([ str(i) for i in ins2])
+                if p!=l:
+                    out_file.write(to_write_2 + '\t' + to_write+'\n')
+            out_file.write('\n')
+        else:
+            to_write = [ str(i) for i in ins]
+            if pred != lable:
+                out_file.write('\t'.join(to_write)+'\n')
+    print('Done!')
+    out_file.close()
+
+def get_true_label(predictions, labels, ignore_index=-100):
+    """去掉padding/BPE造成的填充label
+
+    Args:
+        pred ([type]): 预测到的label，非logits。可以是1-D，也可以是2-D array
+        labels ([type]): 同pred的shape
+        ignore_index: 要忽略的label id
+    """
+    if len(predictions.shape)==2:
+        print('&&& Assuming tagging predictions:')
+        true_predictions = [
+            [p for (p, l) in zip(prediction, label) if l != ignore_index]
+            for prediction, label in zip(predictions, labels)
+        ]
+        true_labels = [
+            [l for (p, l) in zip(prediction, label) if l != ignore_index]
+            for prediction, label in zip(predictions, labels)
+        ]
+    elif len(predictions.shape)==1:
+        true_predictions = [p for p,l in zip(predictions, labels) if l !=ignore_index]
+        true_labels = [l for p,l in zip(predictions, labels) if l !=ignore_index]
+    else:
+        raise ValueError('Do not support non 2-d, 1-d inputs')
+    
+    return true_predictions, true_labels
+
+def write_predict_to_file(pred_out, tokens=None, out_file='predictions.csv', label_list=None):
+    """将model的预测结果写入到文件中。目前支持2-D输入(tagging问题)和1-D输入(分类问题)。
+    默认将去除label==-100的部分，因为大多数时候是padding/BPE带来的冗余部分。
+
+    Args:
+        pred_out ([type]): logits
+        tokens ([type]): golden label
+        out_file (str, optional): 输出地址. Defaults to 'predictions.csv'.
+        label_list ([type], optional): id2label的mapping，支持dict. Defaults to None.
+    """
     predictions = pred_out.predictions
     labels = pred_out.label_ids
 
     predictions = np.argmax(predictions, axis=-1)
+    true_predictions, true_labels = get_true_label(predictions, labels)
 
     if len(labels.shape) == 2:
-        print('&&& Assuming tagging predictions:')
-        true_predictions = [
-            [(label_list[p] if label_list is not None else p) for (p, l) in zip(prediction, label) if l != -100]
-            for prediction, label in zip(predictions, labels)
-        ]
-        true_labels = [
-            [(label_list[l] if label_list is not None else l) for (p, l) in zip(prediction, label) if l != -100]
-            for prediction, label in zip(predictions, labels)
-        ]
         with open(out_file, 'w', encoding='utf-8') as f:
             for p,l,token in zip(true_predictions, true_labels, tokens):
                 for i,j,k in zip(p,l,token):
                     f.write(f'{k}\t{j}\t{i}\n')
                 f.write('\n')
-        print(f'Save to {out_file}.')
+        print(f'Save to conll file {out_file}.')
         return
-
     elif len(labels.shape) == 1:
-        result = {'prediction': predictions, 'labels': labels}
+        result = {'prediction': predictions, 'labels': labels, 'tokens': tokens}
         df = pd.DataFrame(result)
         df.to_csv(out_file, index=False)
-        print(f'Save to {out_file}.')
+        print(f'Save to csv file {out_file}.')
         return
 
 def eval_with_weights(pred_out, weights):

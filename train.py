@@ -283,7 +283,7 @@ def get_base_hf_args(
         "train_batch_size":8,
         "eval_batch_size":8,
         "gradient_accumulation_steps":1,
-        "eval_accumulation_steps":None,
+        "eval_accumulation_steps":1,
         "lr": 5e-05,
         "weight_decay":1e-5,
         "max_grad_norm":1.0,
