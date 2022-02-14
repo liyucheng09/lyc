@@ -12,7 +12,7 @@ class MOH(datasets.GeneratorBasedBuilder):
             'sent_id':datasets.Value('string'),
             'word_index': datasets.Value('int32'),
             'tokens':datasets.Sequence(datasets.Value('string')),
-            'label':datasets.ClassLabel(num_classes=2, names=['Not Metaphor', 'Is Metaphor'])
+            'label':datasets.ClassLabel(num_classes=2, names=['literal', 'metaphorical'])
         }
 
         return datasets.DatasetInfo(
@@ -35,14 +35,14 @@ class MOH(datasets.GeneratorBasedBuilder):
                 continue
             tokens = row['sentence'].split()
             word_idx = 0
-            for index, token in tokens:
+            for windex, token in enumerate(tokens):
                 if token.startswith('<b>') and token.endswith('</b>'):
                     token.strip('<b>').strip('</b>')
-                    word_idx=index
+                    word_idx=windex
             yield index, {
                 'id': index,
-                'sent_id': index,
+                'sent_id': str(index),
                 'tokens': tokens,
                 'word_index': word_idx,
-                'label': 0 if row['class'] == 'literal' else 1
+                'label': row['class']
             }
