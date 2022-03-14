@@ -229,10 +229,8 @@ class BaiduTranslator:
             ]
         }
     """
-    def __init__(self, from_lang='en', to_lang='zh'):
+    def __init__(self):
         
-        self.from_lang = from_lang
-        self.to_lang = to_lang
         self.appid = '20210429000807616'
         self.appkey = 'ycRDNKgTtcNp8TiCMEin'
 
@@ -243,12 +241,12 @@ class BaiduTranslator:
     def make_md5(self, s, encoding='utf-8'):
         return md5(s.encode(encoding)).hexdigest()
 
-    def make_request(self, query):
+    def make_request(self, query, from_lang, to_lang):
         salt = random.randint(32768, 65536)
         sign = self.make_md5(self.appid + query + str(salt) + self.appkey)
         
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        payload = {'appid': self.appid, 'q': query, 'from': self.from_lang, 'to': self.to_lang, 'salt': salt, 'sign': sign}   
+        payload = {'appid': self.appid, 'q': query, 'from': from_lang, 'to': to_lang, 'salt': salt, 'sign': sign}   
 
         r = requests.post(self.url, params=payload, headers=headers)
         result = r.json() 
