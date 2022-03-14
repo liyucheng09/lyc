@@ -210,3 +210,48 @@ def get_pl_callbacks(args):
 
 def subtokenizer_of_gpt(tokenizer):
     return issubclass(tokenizer.__class__, GPT2Tokenizer) or issubclass(tokenizer.__class__, GPT2TokenizerFast)
+
+class BaiduTranslator:
+    """
+    返回格式
+        {
+            "from": "zh",
+            "to": "en",
+            "trans_result": [
+                {
+                    "src": "读书是在我们的生命里，不断增长的我们的朋友！",
+                    "dst": "Reading is our growing friend in our life!"
+                },
+                {
+                    "src": "读书是一种受益，读过书的人将有所补偿；读不读书的人将陷于穷困。",
+                    "dst": "Reading is a benefit, and those who have read books will be compensated; Those who can't read will fall into poverty."
+                }
+            ]
+        }
+    """
+    def __init__(self, from_lang='en', to_lang='zh'):
+        
+        self.from_lang = from_lang
+        self.to_lang = to_lang
+        self.appid = '20210429000807616'
+        self.appkey = 'ycRDNKgTtcNp8TiCMEin'
+
+        endpoint = 'http://api.fanyi.baidu.com'
+        path = '/api/trans/vip/translate'
+        self.url = endpoint + path
+    
+    def make_md5(self, s, encoding='utf-8'):
+        return md5(s.encode(encoding)).hexdigest()
+
+    def make_request(self, query):
+        salt = random.randint(32768, 65536)
+        sign = self.make_md5(self.appid + query + str(salt) + self.appkey)
+        
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        payload = {'appid': self.appid, 'q': query, 'from': self.from_lang, 'to': self.to_lang, 'salt': salt, 'sign': sign}   
+
+        r = requests.post(self.url, params=payload, headers=headers)
+        result = r.json() 
+
+        # return result['trans_result'][0]['dst']
+        return result
