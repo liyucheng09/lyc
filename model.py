@@ -6,23 +6,15 @@ from transformers import (
 import torch
 import torch.nn.functional as F
 
-"""
-Model 对象的开发规范。
-
-Model有两种类型：继承huggingface PreTrainedModel；或者继承nn.Module。
-这样方便utils.get_model方法载入模型。
-
-init的参数规范。
-huggingface-based：
-    # TODO
-
-nn.Module-based: 
-    应在init中初始化一个huggingface base model
-
-"""
-
 
 class SentenceEmbeddingModel(nn.Module):
+    """
+    从预训练语言模型里获取向量。可以经过pooling获取句向量，也可以直接提供idx得到某个token的向量。
+
+    Args: 
+        model_name
+        pooling_type: pooling的方法
+    """
 
     def __init__(self, model_name_or_path, pooling_type=None, **kwargs):
         super(SentenceEmbeddingModel, self).__init__()
@@ -35,18 +27,24 @@ class SentenceEmbeddingModel(nn.Module):
             'first-last-average': self._first_last_average_pooling,
             'cls-pooler': self._cls_pooler_pooling,
             'hidden': self._return_hidden,
+            'idx-last': self._idx_last,
         }
     
-    def forward(self, input_ids,
-        attention_mask=None,
-        token_type_ids=None,
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, idxs = None,
         **kwargs):
 
         outputs=self.base(input_ids, attention_mask, token_type_ids, **kwargs)
         hidden=outputs.hidden_states
         pooler_outputs=outputs.pooler_output
+
+        if idxs is not None: 
+            assert self.pooling_type in ['idx-last'], f"when idxs are provides, you must choose pooling funcs designed for embedding idxing, {self.pooling_type} is chosen!"
+            return self.pooling_funcs[self.pooling_type](hidden, attention_mask, pooler_outputs, idxs = idxs)
         
         return self.pooling_funcs[self.pooling_type](hidden, attention_mask, pooler_outputs)
+
+    def _idx_last(self, hidden, attention_mask, pooled_outputs, idxs):
+        return hidden[-1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze(1)]
 
     def _return_hidden(self, hidden, attention_mask, pooled_outputs):
         return hidden

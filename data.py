@@ -235,6 +235,35 @@ class SentencePairDataset(Dataset):
             output+=(torch.LongTensor([self.label[index]]), )
         return output
 
+class SentenceDataset(Dataset):
+    """
+    句子对/单句数据集。用于训练/使用句向量模型。
+
+    Train: 
+        given sentence pair dataset: (sentence_a, sentence_b, label)
+    
+    predict:
+        given single sentence: (sentence_a)
+    """
+    def __init__(self, tokenized_a, label=None, idxs=None):
+        self.tokenized_a=tokenized_a
+        self.idxs=idxs
+        self.label=label
+
+    def __len__(self):
+        return self.tokenized_a['input_ids'].shape[0]
+
+    def __getitem__(self, index):
+        input_a = {
+            k:v[index] for k,v in self.tokenized_a.items()
+        }
+        output=(input_a, )
+        if self.idxs is not None:
+            output+=(torch.LongTensor([self.idxs[index]]), )
+        if self.label is not None:
+            output+=(torch.LongTensor([self.label[index]]), )
+        return output
+
 class SimCSEDataSet(IterableDataset):
     def __init__(self, tokenized_a, batch_size=32):
         self.tokenized_a=tokenized_a
