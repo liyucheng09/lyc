@@ -28,7 +28,12 @@ class SentenceEmbeddingModel(nn.Module):
             'cls-pooler': self._cls_pooler_pooling,
             'hidden': self._return_hidden,
             'idx-last': self._idx_last,
+            'idx-first-last-average': self._idx_first_last_average,
+            'idx-all-average': self._idx_all_average,
+            'idx-first': self._idx_first,
         }
+
+        self.pools_for_idx = ['idx-last', 'idx-first-last-average', 'idx-all-average', 'idx-first']
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, idxs = None,
         **kwargs):
@@ -38,13 +43,31 @@ class SentenceEmbeddingModel(nn.Module):
         pooler_outputs=outputs.pooler_output
 
         if idxs is not None: 
-            assert self.pooling_type in ['idx-last'], f"when idxs are provides, you must choose pooling funcs designed for embedding idxing, {self.pooling_type} is chosen!"
+            assert self.pooling_type in self.pools_for_idx, f"when idxs are provides, you must choose pooling funcs designed for embedding idxing, {self.pooling_type} is chosen!"
             return self.pooling_funcs[self.pooling_type](hidden, attention_mask, pooler_outputs, idxs = idxs)
         
         return self.pooling_funcs[self.pooling_type](hidden, attention_mask, pooler_outputs)
 
     def _idx_last(self, hidden, attention_mask, pooled_outputs, idxs):
         return hidden[-1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze(1)]
+
+    def _idx_first(self, hidden, attention_mask, pooled_outputs, idxs):
+        return hidden[1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze(1)]
+    
+    def _idx_all_average(self, hidden, attention_mask, pooled_outputs, idxs):
+        line_number = torch.arange(idxs.size(0)).type_as(idxs)
+        idxs = idxs.squeeze(1)
+        representation_each_layers = [layer[line_number, idxs] for layer in hidden[1:]]
+        return torch.mean(
+            torch.stack(representation_each_layers), dim=0
+        )
+    
+    def _idx_first_last_average(self, hidden, attention_mask, pooled_outputs, idxs):
+        line_number = torch.arange(idxs.size(0)).type_as(idxs)
+        idxs = idxs.squeeze(1)
+        last = hidden[-1][line_number, idxs]
+        first = hidden[1][line_number, idxs]
+        return (last+first)/2
 
     def _return_hidden(self, hidden, attention_mask, pooled_outputs):
         return hidden
