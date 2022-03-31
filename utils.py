@@ -21,6 +21,7 @@ from .data import get_dataloader, SentenceDataset
 import random
 from hashlib import md5
 import requests
+from nltk.stem import WordNetLemmatizer
 
 
 def get_model(model_class, model_name, strict=None, **kwargs):
@@ -274,3 +275,15 @@ def get_vectors(model, tokenized_sentences, idxs = None, batch_size = 32):
     
     output=torch.cat(a_results)
     return output
+
+class lemmatizer:
+    """
+        Arg:
+            pos: `"n"` for nouns,
+            `"v"` for verbs, `"a"` for adjectives, `"r"` for adverbs and `"s"`
+            for satellite adjectives.
+    """
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+    def __call__(self, word, pos = 'v'):
+        return self.lemmatizer.lemmatize(word, pos=pos)

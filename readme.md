@@ -12,7 +12,7 @@
 - `get_model`
 - `get_rokenizer`
 - `get_model_output`
-- bert_whitening
+- For `bert_whitening.py`
   - `compute_kernel_bias`
   - `transform_and_normalize`
   - `save_kernel_and_bias`
@@ -20,11 +20,14 @@
 - `get_optimizer_and_schedule`
 - `BaiduTranslator`
 - `get_vectors`
+- class `lemmatizer`
 
 
 # Visualize
 
-- `plotPCA`
+- `plotDimensionReduction`
+  - `PCA`
+  - `tSNE`
 
 # data
 

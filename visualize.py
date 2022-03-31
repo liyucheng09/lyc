@@ -1,15 +1,34 @@
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import numpy as np
 
 MARKERS = ['.', 'o', 'v', '^', '<', '>', 's', '*', '+', 'x']
 COLORS = ['b', 'r', 'c', 'm', 'y', 'k', 'gray', 'navy', 'gold']
 
-def plotPCA(X, labels: list[str], figure_name = 'plotPCA.png'):
-    pca = PCA(n_components=2)
-    X = pca.fit_transform(X)
+def plotDimensionReduction(X, labels: list[str], figure_name, \
+        plot_type = 'PCA', n_components = 2, legend_loc = 6,
+        bbox_to_anchor = (1, 0.5)):
+    def pca(X):
+        pca = PCA(n_components=n_components)
+        X = pca.fit_transform(X)
+        return X
+    def tSNE(X):
+        tsne = TSNE(n_components=n_components, learning_rate='auto', init='pca')
+        X = tsne.fit_transform(X)
+        return X
+    
+    plot_func = {
+        'PCA': pca,
+        'tSNE': tSNE
+    }
 
-    label_type = list(set(labels))
+    X = plot_func[plot_type](X)
+
+    label_type = []
+    for label in labels:
+        if label not in label_type: label_type.append(label)
+
     labels = np.array(labels)
     num_labels = len(label_type)
     assert num_labels <=9, f"markers and colors not enough, have {len(MARKERS)} input number_of_label {num_labels}"
@@ -21,5 +40,7 @@ def plotPCA(X, labels: list[str], figure_name = 'plotPCA.png'):
         index = (labels == label)
         ax.scatter(X[index, 0], X[index, 1], c=colors[label_type.index(label)])
     
-    ax.legend(label_type, bbox_to_anchor=(1, 0.5), loc='center left')
-    plt.savefig(figure_name, bbox_inches='tight', dpi=300.)
+    ax.legend(label_type, bbox_to_anchor=bbox_to_anchor, loc=legend_loc, borderaxespad=0.)
+    # plt.show()
+    plt.savefig(figure_name, bbox_inches = "tight", dpi=300.)
+    print(f'Saved to {figure_name}!')

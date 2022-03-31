@@ -31,9 +31,10 @@ class SentenceEmbeddingModel(nn.Module):
             'idx-first-last-average': self._idx_first_last_average,
             'idx-all-average': self._idx_all_average,
             'idx-first': self._idx_first,
+            'idx-last-four-average': self._idx_last_four_average
         }
 
-        self.pools_for_idx = ['idx-last', 'idx-first-last-average', 'idx-all-average', 'idx-first']
+        self.pools_for_idx = ['idx-last', 'idx-first-last-average', 'idx-all-average', 'idx-first', 'idx-last-four-average']
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, idxs = None,
         **kwargs):
@@ -58,6 +59,14 @@ class SentenceEmbeddingModel(nn.Module):
         line_number = torch.arange(idxs.size(0)).type_as(idxs)
         idxs = idxs.squeeze(1)
         representation_each_layers = [layer[line_number, idxs] for layer in hidden[1:]]
+        return torch.mean(
+            torch.stack(representation_each_layers), dim=0
+        )
+    
+    def _idx_last_four_average(self, hidden, attention_mask, pooled_outputs, idxs):
+        line_number = torch.arange(idxs.size(0)).type_as(idxs)
+        idxs = idxs.squeeze(1)
+        representation_each_layers = [layer[line_number, idxs] for layer in hidden[-4:]]
         return torch.mean(
             torch.stack(representation_each_layers), dim=0
         )
