@@ -237,13 +237,12 @@ class SentencePairDataset(Dataset):
 
 class SentenceDataset(Dataset):
     """
-    句子对/单句数据集。用于训练/使用句向量模型。
+    单句Sentences Dataset
 
-    Train: 
-        given sentence pair dataset: (sentence_a, sentence_b, label)
-    
-    predict:
-        given single sentence: (sentence_a)
+    Args:
+        tokenized_a: sentences的encoding
+        label: list[int]
+        idxs: 当要取某个位置的向量时给出
     """
     def __init__(self, tokenized_a, label=None, idxs=None):
         self.tokenized_a=tokenized_a
@@ -265,6 +264,11 @@ class SentenceDataset(Dataset):
         return output
 
 class SimCSEDataSet(IterableDataset):
+    """给定一个list的句子，打乱顺序后给出两两配对的句子对，并生成label(其形状为除了自己和自己配对为positive之外均为negative)。
+
+    Args:
+        tokenized_a: tokenized sentence encoding
+    """
     def __init__(self, tokenized_a, batch_size=32):
         self.tokenized_a=tokenized_a
         self.batch_size=batch_size

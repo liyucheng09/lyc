@@ -8,13 +8,13 @@ COLORS = ['b', 'r', 'c', 'm', 'y', 'k', 'gray', 'navy', 'gold']
 
 def plotDimensionReduction(X, labels: list[str], figure_name, \
         plot_type = 'PCA', n_components = 2, legend_loc = 6,
-        bbox_to_anchor = (1, 0.5)):
-    def pca(X):
-        pca = PCA(n_components=n_components)
+        bbox_to_anchor = (1, 0.5), **kwargs):
+    def pca(X, **kwargs):
+        pca = PCA(n_components=n_components, **kwargs)
         X = pca.fit_transform(X)
         return X
-    def tSNE(X):
-        tsne = TSNE(n_components=n_components, learning_rate='auto', init='pca')
+    def tSNE(X, **kwargs):
+        tsne = TSNE(n_components=n_components, **kwargs)
         X = tsne.fit_transform(X)
         return X
     
@@ -23,7 +23,7 @@ def plotDimensionReduction(X, labels: list[str], figure_name, \
         'tSNE': tSNE
     }
 
-    X = plot_func[plot_type](X)
+    X = plot_func[plot_type](X, **kwargs)
 
     label_type = []
     for label in labels:
@@ -44,3 +44,4 @@ def plotDimensionReduction(X, labels: list[str], figure_name, \
     # plt.show()
     plt.savefig(figure_name, bbox_inches = "tight", dpi=300.)
     print(f'Saved to {figure_name}!')
+    return X

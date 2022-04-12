@@ -50,14 +50,14 @@ class SentenceEmbeddingModel(nn.Module):
         return self.pooling_funcs[self.pooling_type](hidden, attention_mask, pooler_outputs)
 
     def _idx_last(self, hidden, attention_mask, pooled_outputs, idxs):
-        return hidden[-1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze(1)]
+        return hidden[-1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze()]
 
     def _idx_first(self, hidden, attention_mask, pooled_outputs, idxs):
-        return hidden[1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze(1)]
+        return hidden[1][torch.arange(idxs.size(0)).type_as(idxs), idxs.squeeze()]
     
     def _idx_all_average(self, hidden, attention_mask, pooled_outputs, idxs):
         line_number = torch.arange(idxs.size(0)).type_as(idxs)
-        idxs = idxs.squeeze(1)
+        idxs = idxs.squeeze()
         representation_each_layers = [layer[line_number, idxs] for layer in hidden[1:]]
         return torch.mean(
             torch.stack(representation_each_layers), dim=0
@@ -65,7 +65,7 @@ class SentenceEmbeddingModel(nn.Module):
     
     def _idx_last_four_average(self, hidden, attention_mask, pooled_outputs, idxs):
         line_number = torch.arange(idxs.size(0)).type_as(idxs)
-        idxs = idxs.squeeze(1)
+        idxs = idxs.squeeze()
         representation_each_layers = [layer[line_number, idxs] for layer in hidden[-4:]]
         return torch.mean(
             torch.stack(representation_each_layers), dim=0
@@ -118,7 +118,9 @@ class SentenceEmbeddingModel(nn.Module):
 class simcse(SentenceEmbeddingModel):
 
     def forward(self, *args, **kwargs):
-        label = kwargs.pop('label')
+        if kwargs['input_ids'].shape[0]==1 and len(kwargs['input_ids'].shape)==3:
+            kwargs = { k:v.squeeze(0) for k,v in kwargs.items()}
+        label = kwargs.pop('labels')
         embeddings=super(simcse, self).forward(*args, **kwargs)
         loss = self.cce_losses(label, embeddings)
 
@@ -142,7 +144,7 @@ class simcse(SentenceEmbeddingModel):
         sims=torch.matmul(normalized_embedding, normalized_embedding.T)
         sims=sims*20 - torch.eye(embeddings.shape[0])*1e12
 
-        loss=F.cross_entropy(label, sims)
+        loss=F.cross_entropy(sims, label)
         return loss
 
 
