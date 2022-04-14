@@ -145,15 +145,7 @@ class simcse(SentenceEmbeddingModel):
 
         normalized_embedding = embeddings/torch.sqrt((embeddings**2).sum(-1))[:, None]
         sims=torch.matmul(normalized_embedding, normalized_embedding.T)
-        sims=sims*20 - torch.eye(embeddings.shape[0])*1e12
+        sims=sims*20 - torch.eye(embeddings.shape[0]).type_as(embeddings)*1e12
 
         loss=F.cross_entropy(sims, label)
         return loss
-
-
-MODELS={
-    'sentence-embedding': SentenceEmbeddingModel,
-}
-WAPPERS=[
-    SentenceEmbeddingModel,
-]

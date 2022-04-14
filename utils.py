@@ -9,7 +9,6 @@ from transformers import (BertModel,
 from datasets import load_dataset, Dataset as hfds
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
-from .model import MODELS, WAPPERS
 import numpy as np
 import torch
 from torch.optim import AdamW
@@ -37,9 +36,8 @@ def get_model(model_class, model_name, strict=None, **kwargs):
         model: model object
 
     """
-    if model_class in WAPPERS:
-        model=model_class(model_name, **kwargs)
-    elif issubclass(model_class, PreTrainedModel):
+
+    if issubclass(model_class, PreTrainedModel):
         if strict is not None:
             model_config = AutoConfig.from_pretrained(model_name, **kwargs)
             model = model_class(model_config)

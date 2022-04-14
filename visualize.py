@@ -2,11 +2,12 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import List
 
 MARKERS = ['.', 'o', 'v', '^', '<', '>', 's', '*', '+', 'x']
 COLORS = ['b', 'r', 'c', 'm', 'y', 'k', 'gray', 'navy', 'gold']
 
-def plotDimensionReduction(X, labels: list[str], figure_name, \
+def plotDimensionReduction(X, labels: List[str], figure_name, \
         plot_type = 'PCA', n_components = 2, legend_loc = 6,
         bbox_to_anchor = (1, 0.5), **kwargs):
     def pca(X, **kwargs):
