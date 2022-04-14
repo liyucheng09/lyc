@@ -2,12 +2,14 @@ import torch.nn as nn
 from transformers import (
     BertModel,
     AutoModel,
+    PreTrainedModel,
+    RobertaModel
 )
 import torch
 import torch.nn.functional as F
 
 
-class SentenceEmbeddingModel(nn.Module):
+class SentenceEmbeddingModel(RobertaModel):
     """
     从预训练语言模型里获取向量。可以经过pooling获取句向量，也可以直接提供idx得到某个token的向量。
 
@@ -16,10 +18,10 @@ class SentenceEmbeddingModel(nn.Module):
         pooling_type: pooling的方法
     """
 
-    def __init__(self, model_name_or_path, pooling_type=None, **kwargs):
-        super(SentenceEmbeddingModel, self).__init__()
+    def __init__(self, *args, pooling_type=None, **kwargs):
+        super(SentenceEmbeddingModel, self).__init__(*args, **kwargs)
         self.pooling_type=pooling_type
-        self.base=AutoModel.from_pretrained(model_name_or_path, output_hidden_states=True, **kwargs)
+        # self.base=AutoModel.from_pretrained(model_name_or_path, output_hidden_states=True, **kwargs)
 
         self.pooling_funcs={
             'cls': self._cls_pooling,
@@ -36,10 +38,11 @@ class SentenceEmbeddingModel(nn.Module):
 
         self.pools_for_idx = ['idx-last', 'idx-first-last-average', 'idx-all-average', 'idx-first', 'idx-last-four-average']
     
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None, idxs = None,
-        **kwargs):
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None, idxs = None, **kwargs):
 
-        outputs=self.base(input_ids, attention_mask, token_type_ids, **kwargs)
+        outputs=super(SentenceEmbeddingModel, self).forward(input_ids, attention_mask, token_type_ids, **kwargs)
+        # outputs=self.base(input_ids, attention_mask, token_type_ids, **kwargs)
+
         hidden=outputs.hidden_states
         pooler_outputs=outputs.pooler_output
 
