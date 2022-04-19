@@ -153,11 +153,3 @@ class simcse(SentenceEmbeddingModel):
 
         loss=F.cross_entropy(masked_sims, label)
         return loss, sims
-
-
-MODELS={
-    'sentence-embedding': SentenceEmbeddingModel,
-}
-WAPPERS=[
-    SentenceEmbeddingModel,
-]
