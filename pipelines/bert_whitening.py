@@ -8,7 +8,7 @@ class BertWhitening:
     def __init__(self, model_type, model_path, max_length=64, \
         n_components=768, kernel_bias_path=None, \
         corpus_for_kernel_computing=None, \
-        pool='first_last_avg_pooling', is_zh = False, add_prefix_space = False):
+        pool='first_last_avg_pooling', is_zh = False, add_prefix_space = False, **kwargs):
         """[summary]
 
         Args:
@@ -18,7 +18,7 @@ class BertWhitening:
             kernel_bias_path ([type], optional): [description]. Defaults to None.
             corpus_for_kernel_computing ([type], optional): 训练kernel和bias需要的语料，纯txt，一行一个句子. Defaults to None.
         """
-        self.model = get_model(model_type, model_path, pooling_type = pool)
+        self.model = get_model(model_type, model_path, pooling_type = pool, **kwargs)
         self.tokenizer = get_tokenizer(model_path, is_zh=is_zh, add_prefix_space = add_prefix_space)
         self.max_length=max_length
         self.n_components=n_components
