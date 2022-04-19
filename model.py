@@ -124,31 +124,35 @@ class simcse(SentenceEmbeddingModel):
         if kwargs['input_ids'].shape[0]==1 and len(kwargs['input_ids'].shape)==3:
             kwargs = { k:v.squeeze(0) for k,v in kwargs.items()}
         label = kwargs.pop('labels')
+        return_sims = kwargs.pop('return_sims')
         embeddings=super(simcse, self).forward(*args, **kwargs)
-        loss = self.cce_losses(label, embeddings)
+        loss, sims = self.cce_losses(label, embeddings)
 
-        return {'loss': loss}
+        results = {'loss': loss}
+        if return_sims is not None:
+            results['sims'] = sims
+        return results
     
     def nll_losses(self, label, embeddings):
 
         label=F.one_hot(label)
         normalized_embedding = embeddings/torch.sqrt((embeddings**2).sum(-1))[:, None]
         sims=torch.matmul(normalized_embedding, normalized_embedding.T)
-        sims = sims - torch.eye(embeddings.shape[0])*100
+        masked_sims = sims - torch.eye(embeddings.shape[0])*100
 
-        sims.clip_(0,1)
-        loss = F.binary_cross_entropy(sims.view(-1), label.view(-1).float())
+        masked_sims.clip_(0,1)
+        loss = F.binary_cross_entropy(masked_sims.view(-1), label.view(-1).float())
         
-        return loss
+        return loss, sims
 
     def cce_losses(self, label, embeddings):
 
         normalized_embedding = embeddings/torch.sqrt((embeddings**2).sum(-1))[:, None]
         sims=torch.matmul(normalized_embedding, normalized_embedding.T)
-        sims=sims*20 - torch.eye(embeddings.shape[0])*1e12
+        masked_sims=sims*20 - torch.eye(embeddings.shape[0])*1e12
 
-        loss=F.cross_entropy(sims, label)
-        return loss
+        loss=F.cross_entropy(masked_sims, label)
+        return loss, sims
 
 
 MODELS={
