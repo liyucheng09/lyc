@@ -5,7 +5,7 @@ import numpy as np
 from typing import List
 
 MARKERS = ['.', 'o', 'v', '^', '<', '>', 's', '*', '+', 'x']
-COLORS = ['b', 'r', 'c', 'm', 'y', 'k', 'gray', 'navy', 'gold']
+COLORS = ['aqua', 'azure', 'beige', 'black', 'bleu', 'brown', 'gold', 'green', 'ivory', 'cyan', 'navy', 'pink', 'red', 'teal', 'tan', 'yellow']
 
 def plotDimensionReduction(X, labels: List[str], figure_name, \
         plot_type = 'PCA', n_components = 2, legend_loc = 6,
@@ -32,7 +32,7 @@ def plotDimensionReduction(X, labels: List[str], figure_name, \
 
     labels = np.array(labels)
     num_labels = len(label_type)
-    assert num_labels <=9, f"markers and colors not enough, have {len(MARKERS)} input number_of_label {num_labels}"
+    assert num_labels <=9, f"Colors not enough, have {len(COLORS)} colors, but got {num_labels} of labels."
     fig, ax = plt.subplots()
     markers, colors = MARKERS[:num_labels], COLORS[: num_labels]
 
