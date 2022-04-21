@@ -5,7 +5,7 @@ import numpy as np
 from typing import List
 
 MARKERS = ['.', 'o', 'v', '^', '<', '>', 's', '*', '+', 'x']
-COLORS = ['aqua', 'azure', 'beige', 'black', 'bleu', 'brown', 'gold', 'green', 'ivory', 'cyan', 'navy', 'pink', 'red', 'teal', 'tan', 'yellow']
+COLORS = ['black', 'blue', 'brown', 'gold', 'green', 'cyan', 'navy', 'pink', 'red', 'teal', 'tan', 'yellow', 'wheat', 'ivory',  'aqua', 'azure', 'beige', ]
 
 def plotDimensionReduction(X, labels: List[str], figure_name, \
         plot_type = 'PCA', n_components = 2, legend_loc = 6,
@@ -32,7 +32,9 @@ def plotDimensionReduction(X, labels: List[str], figure_name, \
 
     labels = np.array(labels)
     num_labels = len(label_type)
-    assert num_labels <=9, f"Colors not enough, have {len(COLORS)} colors, but got {num_labels} of labels."
+    if num_labels > len(COLORS):
+        print(f"Colors not enough, have {len(COLORS)} colors, but got {num_labels} of labels.")
+        return
     fig, ax = plt.subplots()
     markers, colors = MARKERS[:num_labels], COLORS[: num_labels]
 
@@ -45,4 +47,5 @@ def plotDimensionReduction(X, labels: List[str], figure_name, \
     # plt.show()
     plt.savefig(figure_name, bbox_inches = "tight", dpi=300.)
     print(f'Saved to {figure_name}!')
+    plt.clf()
     return X
