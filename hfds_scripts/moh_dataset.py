@@ -24,7 +24,7 @@ class MOH(datasets.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
 
         return [
-            datasets.SplitGenerator(name=datasets.Split.TRAIN, gen_kwargs={'filepath': self.config.data_files}),
+            datasets.SplitGenerator(name=datasets.Split.TRAIN, gen_kwargs={'filepath': self.config.data_dir}),
         ]
     
     def _generate_examples(self, filepath):

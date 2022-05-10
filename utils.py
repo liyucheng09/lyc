@@ -9,7 +9,6 @@ from transformers import (BertModel,
 from datasets import load_dataset, Dataset as hfds
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
-from .model import MODELS, WAPPERS
 import numpy as np
 import torch
 from torch.optim import AdamW
@@ -17,7 +16,11 @@ from torch.optim.lr_scheduler import LambdaLR
 from sklearn.metrics import accuracy_score
 import os
 import pickle
-from .data import get_dataloader
+from .data import get_dataloader, SentenceDataset
+import random
+from hashlib import md5
+import requests
+from nltk.stem import WordNetLemmatizer
 
 
 def get_model(model_class, model_name, strict=None, **kwargs):
@@ -33,9 +36,8 @@ def get_model(model_class, model_name, strict=None, **kwargs):
         model: model object
 
     """
-    if model_class in WAPPERS:
-        model=model_class(model_name, **kwargs)
-    elif issubclass(model_class, PreTrainedModel):
+
+    if issubclass(model_class, PreTrainedModel):
         if strict is not None:
             model_config = AutoConfig.from_pretrained(model_name, **kwargs)
             model = model_class(model_config)
@@ -249,7 +251,37 @@ class BaiduTranslator:
         payload = {'appid': self.appid, 'q': query, 'from': from_lang, 'to': to_lang, 'salt': salt, 'sign': sign}   
 
         r = requests.post(self.url, params=payload, headers=headers)
+        print(r.status_code)
         result = r.json() 
 
         # return result['trans_result'][0]['dst']
         return result
+
+def get_vectors(model, tokenized_sentences, idxs = None, batch_size = 32):
+    ds = SentenceDataset(tokenized_sentences, idxs = idxs)
+    dl = DataLoader(ds, batch_size=batch_size)
+    a_results = []
+
+    for batch in tqdm(dl, desc='Vectorizing: '):
+        if torch.cuda.is_available():
+            batch=[to_gpu(i) for i in batch]
+        input_a = batch[0]
+        if idxs is not None:
+            idxs = batch[1]
+        output = model(idxs = idxs, **input_a)
+        a_results.append(output)
+    
+    output=torch.cat(a_results)
+    return output
+
+class lemmatizer:
+    """
+        Arg:
+            pos: `"n"` for nouns,
+            `"v"` for verbs, `"a"` for adjectives, `"r"` for adverbs and `"s"`
+            for satellite adjectives.
+    """
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+    def __call__(self, word, pos = 'v'):
+        return self.lemmatizer.lemmatize(word, pos=pos)
