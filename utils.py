@@ -21,7 +21,12 @@ def get_model(model_class, model_name, **kwargs):
     该方法载入模型。
 
     Args:
-        model_class: 
+        model_class: 模型对象，支持lyc.model中定义的模型和huggingface支持的模型。
+        model_name: base model 的 name 或 path
+        cache_dir: （optional） from_pretrained 方法需要的参数
+    
+    Return：
+        model: model object
 
     """
     if model_class in WAPPERS:
@@ -38,6 +43,13 @@ def get_model(model_class, model_name, **kwargs):
     return model
 
 def get_tokenizer(tokenizer_name, cache_dir=None, is_zh=None, **kwargs):
+    """
+        Args:
+            tokenizer_name: name or path
+            cache_dir=None:
+            is_zh=None:
+    """
+
     if is_zh:
         tokenizer=BertTokenizer.from_pretrained(tokenizer_name, cache_dir=cache_dir, **kwargs)
     else:
