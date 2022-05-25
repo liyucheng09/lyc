@@ -30,6 +30,7 @@ def plotDimensionReduction(X, labels: List[str], figure_name, \
     for label in labels:
         if label not in label_type: label_type.append(label)
 
+    label_type.sort()
     labels = np.array(labels)
     num_labels = len(label_type)
     if num_labels > len(COLORS):
@@ -47,5 +48,5 @@ def plotDimensionReduction(X, labels: List[str], figure_name, \
     # plt.show()
     plt.savefig(figure_name, bbox_inches = "tight", dpi=300.)
     print(f'Saved to {figure_name}!')
-    plt.clf()
+    plt.close()
     return X
