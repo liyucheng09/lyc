@@ -9,10 +9,11 @@ class Hard(datasets.GeneratorBasedBuilder):
 
         feature = {
             'id':datasets.Value('int32'),
-            'sent_id':datasets.Value('string'),
             'word_index': datasets.Value('int32'),
+            'lemma': datasets.Value('string'),
+            'word': datasets.Value('string'),
             'tokens':datasets.Sequence(datasets.Value('string')),
-            'label':datasets.ClassLabel(num_classes=2, names=['Not Metaphor', 'Is Metaphor'])
+            'label':datasets.ClassLabel(num_classes=2, names=['literal', 'metaphorical'])
         }
 
         return datasets.DatasetInfo(
@@ -22,7 +23,7 @@ class Hard(datasets.GeneratorBasedBuilder):
     
     def _split_generators(self, dl_manager):
 
-        return datasets.SplitGenerator(name='hard', gen_kwargs={'filepath': self.config.data_path}),
+        return datasets.SplitGenerator(name=datasets.Split.TRAIN, gen_kwargs={'filepath': self.config.data_files}),
         # return [
         #     datasets.SplitGenerator(name='hard', gen_kwargs={'filepath': self.config.data_path}),
         # ]
@@ -31,7 +32,7 @@ class Hard(datasets.GeneratorBasedBuilder):
         df = pd.read_csv(filepath, sep='\t')
 
         for index, row in df.iterrows():
-            tokens = [token if not token.startswith('[') and token.endswith(']') else token[1:-1] for token in row['context']]
+            tokens = [token if not (token.startswith('[') and token.endswith(']')) else token[1:-1] for token in row['context'].split()]
             yield index, {
                 'id': index,
                 'word': row['word'],
