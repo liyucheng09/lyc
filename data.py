@@ -364,7 +364,8 @@ def get_hf_ds_scripts_path(ds_name):
         'sesame':'hfds_scripts/sesame_dataset.py',
         'vua20': 'hfds_scripts/vua20_dataset.py',
         'moh': 'hfds_scripts/moh_dataset.py',
-        'hard': 'hfds_scripts/hard_metaphor_dataset.py'
+        'hard': 'hfds_scripts/hard_metaphor_dataset.py',
+        'empathy': 'hfds_scripts/empathy_dataset.py'
     }
 
     return os.path.join(os.path.dirname(__file__), relative_path[ds_name])
