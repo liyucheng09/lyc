@@ -146,7 +146,7 @@ def get_true_label_and_token(predictions, labels, ignore_index=-100, tokens = No
         outputs += (true_tokens,)
     return outputs
 
-def write_predict_to_file(pred_out, tokens=None, out_file='predictions.csv', label_list=None):
+def write_predict_to_file(pred_out, tokens=None, out_file='predictions.csv', label_list=None, tokenizer = None):
     """将model的预测结果写入到文件中。目前支持2-D输入(tagging问题)和1-D输入(分类问题)。
     默认将去除label==-100的部分，因为大多数时候是padding/BPE带来的冗余部分。
 
@@ -160,11 +160,11 @@ def write_predict_to_file(pred_out, tokens=None, out_file='predictions.csv', lab
     labels = pred_out.label_ids
 
     predictions = np.argmax(predictions, axis=-1)
-    true_predictions, true_labels = get_true_label(predictions, labels)
+    true_predictions, true_labels, true_tokens = get_true_label_and_token(predictions, labels, tokens = tokens, tokenizer = tokenizer)
 
     if len(labels.shape) == 2:
         with open(out_file, 'w', encoding='utf-8') as f:
-            for p,l,token in zip(true_predictions, true_labels, tokens):
+            for p,l,token in zip(true_predictions, true_labels, true_tokens):
                 for i,j,k in zip(p,l,token):
                     f.write(f'{k}\t{j}\t{i}\n')
                 f.write('\n')
