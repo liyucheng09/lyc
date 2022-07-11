@@ -111,7 +111,7 @@ def show_error_instances_id(preds, labels, output_file, *args):
     print('Done!')
     out_file.close()
 
-def get_true_label(predictions, labels, ignore_index=-100):
+def get_true_label_and_token(predictions, labels, ignore_index=-100, tokens = None, tokenizer = None):
     """去掉padding/BPE造成的填充label
 
     Args:
@@ -129,13 +129,22 @@ def get_true_label(predictions, labels, ignore_index=-100):
             [l for (p, l) in zip(prediction, label) if l != ignore_index]
             for prediction, label in zip(predictions, labels)
         ]
+        if tokens is not None:
+            assert tokenizer is not None
+            true_tokens = [
+                [tokenizer.convert_ids_to_tokens(t) for (t, l) in zip(token, label) if l != ignore_index]
+                for token, label in zip(tokens, labels)
+            ]
     elif len(predictions.shape)==1:
         true_predictions = [p for p,l in zip(predictions, labels) if l !=ignore_index]
         true_labels = [l for p,l in zip(predictions, labels) if l !=ignore_index]
     else:
         raise ValueError('Do not support non 2-d, 1-d inputs')
     
-    return true_predictions, true_labels
+    outputs = (true_predictions, true_labels,)
+    if tokens is not None:
+        outputs += (true_tokens,)
+    return outputs
 
 def write_predict_to_file(pred_out, tokens=None, out_file='predictions.csv', label_list=None):
     """将model的预测结果写入到文件中。目前支持2-D输入(tagging问题)和1-D输入(分类问题)。
