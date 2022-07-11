@@ -40,7 +40,8 @@ def tagging_eval_for_trainer(eval_prediction):
         "accuracy_score": accuracy_score(true_labels, true_predictions),
         "precision": precision_score(true_labels, true_predictions, average='micro'),
         "recall": recall_score(true_labels, true_predictions, average='micro'),
-        "f1": f1_score(true_labels, true_predictions, average='micro'),
+        "micro_f1": f1_score(true_labels, true_predictions, average='micro'),
+        "macro_f1": f1_score(true_labels, true_predictions, average='macro'),
     }
 
 def frame_finder_eval_for_trainer(eval_prediction):

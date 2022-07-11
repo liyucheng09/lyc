@@ -37,7 +37,7 @@ class MOH(datasets.GeneratorBasedBuilder):
             word_idx = 0
             for windex, token in enumerate(tokens):
                 if token.startswith('<b>') and token.endswith('</b>'):
-                    token.strip('<b>').strip('</b>')
+                    tokens[windex] = token.strip('<b>').strip('</b>')
                     word_idx=windex
             yield index, {
                 'id': index,
