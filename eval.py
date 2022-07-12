@@ -160,20 +160,22 @@ def write_predict_to_file(pred_out, tokens=None, out_file='predictions.csv', lab
     labels = pred_out.label_ids
 
     predictions = np.argmax(predictions, axis=-1)
-    true_predictions, true_labels, true_tokens = get_true_label_and_token(predictions, labels, tokens = tokens, tokenizer = tokenizer)
 
     if len(labels.shape) == 2:
+        outputs = get_true_label_and_token(predictions, labels, tokens = tokens, tokenizer = tokenizer)
         with open(out_file, 'w', encoding='utf-8') as f:
-            for p,l,token in zip(true_predictions, true_labels, true_tokens):
-                for i,j,k in zip(p,l,token):
-                    f.write(f'{k}\t{j}\t{i}\n')
+            for cols in zip(*outputs):
+                for items in zip(*cols):
+                    f.write( "\t".join(items) + '\n')
                 f.write('\n')
         print(f'Save to conll file {out_file}.')
         return
     elif len(labels.shape) == 1:
-        result = {'prediction': predictions, 'labels': labels, 'tokens': tokens}
+        result = {'prediction': predictions, 'labels': labels}
+        if tokens is not None:
+            result['tokens'] = tokens
         df = pd.DataFrame(result)
-        df.to_csv(out_file, index=False)
+        df.to_csv(out_file, index=False, sep='\t')
         print(f'Save to csv file {out_file}.')
         return
 
